@@ -4,7 +4,7 @@ env:
   TZ: Asia/Shanghai
   ANDROID_VERSION: 'android15'
   KERNEL_VERSION: '6.6'
-  KERNEL_NAME: '-🌈'
+  KERNEL_NAME: ''
 
 on:
   workflow_dispatch:
