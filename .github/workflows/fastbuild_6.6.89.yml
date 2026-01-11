@@ -135,7 +135,6 @@ jobs:
           rm common/android/abi_gki_protected_exports_* || true
           for f in common/scripts/setlocalversion; do
             sed -i 's/ -dirty//g' "$f"
-            sed -i '$i res=$(echo "$res" | sed '\''s/-dirty//g'\'')' "$f"
           done
 
       - name: 配置ccache目录
@@ -579,21 +578,12 @@ jobs:
       - name: 添加制作名称
         run: |
           cd kernel_workspace
-          echo "替换内核版本后缀..."
+          echo "设置内核版本后缀环境变量..."
           if [[ -n "${{ github.event.inputs.kernel_suffix }}" ]]; then
-            echo "当前内核版本后缀：${{ github.event.inputs.kernel_suffix }}"
-            for f in ./common/scripts/setlocalversion; do
-              sed -i "\$s|echo \"\\\$res\"|echo \"-${{ github.event.inputs.kernel_suffix }}\"|" "$f"
-            done
-            sudo sed -i "s/-4k/-${{ github.event.inputs.kernel_suffix }}/g" ./common/arch/arm64/configs/gki_defconfig
+            echo "K_SUFFIX=-${{ github.event.inputs.kernel_suffix }}" >> $GITHUB_ENV
           else
-            echo "当前内核版本后缀：${{ env.KERNEL_NAME }}"
-            for f in ./common/scripts/setlocalversion; do
-              sed -i "\$s|echo \"\\\$res\"|echo \"-${{ env.KERNEL_NAME }}\"|" "$f"
-            done
-            sudo sed -i "s/-4k/-${{ env.KERNEL_NAME }}/g" ./common/arch/arm64/configs/gki_defconfig
+            echo "K_SUFFIX=-${{ env.KERNEL_NAME }}" >> $GITHUB_ENV
           fi
-          sed -i 's/${scm_version}//' ./common/scripts/setlocalversion
           echo "CONFIG_LOCALVERSION_AUTO=n" >> ./common/arch/arm64/configs/gki_defconfig
            
       - name: 构建内核
@@ -656,10 +646,13 @@ jobs:
           sudo rm -rf /usr/local/lib/android &
           sudo rm -rf /opt/ghc &
           sudo rm -rf /opt/hostedtoolcache/CodeQL &
-          make -j$(nproc --all) LLVM=1 ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- CC="ccache clang" LD="ld.lld" HOSTLD=ld.lld O=out KCFLAGS+=-O2 KCFLAGS+=-Wno-error gki_defconfig &&
-          echo "CONFIG_DEBUG_INFO_BTF=n" >> out/.config &&
-          echo "CONFIG_DEBUG_INFO_BTF_MODULES=n" >> out/.config &&
-          make -j$(nproc --all) LLVM=1 ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- CC="$(pwd)/cc-wrapper" LD="$(pwd)/ld-wrapper" HOSTLD=ld.lld O=out KCFLAGS+=-O2 KCFLAGS+=-Wno-error ${{ env.CUSTOM_KSU_VERSION_ARG }} ${{ env.CUSTOM_KSU_VERSION_FULL_ARG }} Image
+          
+          make -j$(nproc --all) LLVM=1 ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- CC="ccache clang" LD="ld.lld" HOSTLD=ld.lld O=out KCFLAGS+=-O2 KCFLAGS+=-Wno-error gki_defconfig
+          echo "CONFIG_DEBUG_INFO_BTF=n" >> out/.config
+          echo "CONFIG_DEBUG_INFO_BTF_MODULES=n" >> out/.config
+          
+          # 新方法：直接通过 LOCALVERSION 变量传递自定义后缀，避开脚本干涉
+          make -j$(nproc --all) LLVM=1 ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- CC="$(pwd)/cc-wrapper" LD_PRELOAD="" LD="ld.lld" HOSTLD=ld.lld O=out KCFLAGS+=-O2 KCFLAGS+=-Wno-error LOCALVERSION="${{ env.K_SUFFIX }}" ${{ env.CUSTOM_KSU_VERSION_ARG }} ${{ env.CUSTOM_KSU_VERSION_FULL_ARG }} Image
           
           echo "内核编译完成！"
           ccache -s
