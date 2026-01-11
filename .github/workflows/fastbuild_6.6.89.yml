@@ -22,11 +22,11 @@ on:
           - 'ksu'
           - 'none'
       custom_ksu_version:
-        description: "🔢 自定义 SukiSU 数字版本号 (例如: 15000) - 留空则自动获取"
+        description: '自定义 SukiSU 数字版本号 (例如: 15000) - 留空则自动获取'
         required: false
         default: ''
       custom_ksu_version_full:
-        description: "📝 自定义 SukiSU 完整版本字符串 (例如: v3.2.0-custom) - 留空则自动获取"
+        description: '自定义 SukiSU 完整版本字符串 (例如: v3.2.0-custom) - 留空则自动获取'
         required: false
         default: ''
       susfs_enable:
@@ -164,8 +164,6 @@ jobs:
         id: ksu_version
         run: |
           cd kernel_workspace
-          CUSTOM_KSU_NUMERIC="${{ github.event.inputs.custom_ksu_version }}"
-          CUSTOM_KSU_FULL="${{ github.event.inputs.custom_ksu_version_full }}"
           if [[ ${{ github.event.inputs.ksu_type }} == "sukisu" ]]; then
             curl -LSs "https://raw.githubusercontent.com/ShirkNeko/SukiSU-Ultra/refs/heads/main/kernel/setup.sh" | bash -s builtin
             cd ./KernelSU
@@ -176,22 +174,27 @@ jobs:
             done
             [ -z "$KSU_API_VERSION" ] && KSU_API_VERSION="3.1.7"
             echo "KSU_API_VERSION=$KSU_API_VERSION" >> $GITHUB_ENV
-            if [ -n "$CUSTOM_KSU_FULL" ]; then
-                FINAL_FULL="$CUSTOM_KSU_FULL"
-                echo "CUSTOM_KSU_VERSION_FULL_ARG=KSU_VERSION_FULL=\"$FINAL_FULL\"" >> $GITHUB_ENV
+            
+            if [ -n "${{ github.event.inputs.custom_ksu_version_full }}" ]; then
+              FINAL_KSU_VERSION_FULL="${{ github.event.inputs.custom_ksu_version_full }}"
+              echo "CUSTOM_KSU_VERSION_FULL_ARG=KSU_VERSION_FULL=\"$FINAL_KSU_VERSION_FULL\"" >> $GITHUB_ENV
             else
-                FINAL_FULL="v${KSU_API_VERSION}-${GIT_COMMIT_HASH}-🌸"
+              FINAL_KSU_VERSION_FULL="v${KSU_API_VERSION}-${GIT_COMMIT_HASH}-🌸"
+              echo "CUSTOM_KSU_VERSION_FULL_ARG=" >> $GITHUB_ENV
             fi
-            VERSION_DEFINITIONS=$'define get_ksu_version_full\nv\\$1-'"$GIT_COMMIT_HASH"$'-🌸\nendef\n\nKSU_VERSION_API := '"$KSU_API_VERSION"$'\nKSU_VERSION_FULL := '"$FINAL_FULL"
+
+            VERSION_DEFINITIONS=$'define get_ksu_version_full\nv\\$1-'"$GIT_COMMIT_HASH"$'-🌸\nendef\n\nKSU_VERSION_API := '"$KSU_API_VERSION"$'\nKSU_VERSION_FULL := '"$FINAL_KSU_VERSION_FULL"
             sed -i '/define get_ksu_version_full/,/endef/d' kernel/Kbuild
             sed -i '/KSU_VERSION_API :=/d' kernel/Kbuild
             sed -i '/KSU_VERSION_FULL :=/d' kernel/Kbuild
             awk -v def="$VERSION_DEFINITIONS" '/REPO_OWNER :=/ {print; print def; inserted=1; next} 1 END {if (!inserted) print def}' kernel/Kbuild > kernel/Kbuild.tmp && mv kernel/Kbuild.tmp kernel/Kbuild
-            if [ -n "$CUSTOM_KSU_NUMERIC" ]; then
-                KSU_VERSION="$CUSTOM_KSU_NUMERIC"
-                echo "CUSTOM_KSU_VERSION_ARG=KSU_VERSION=$KSU_VERSION" >> $GITHUB_ENV
+
+            if [ -n "${{ github.event.inputs.custom_ksu_version }}" ]; then
+              KSU_VERSION="${{ github.event.inputs.custom_ksu_version }}"
+              echo "CUSTOM_KSU_VERSION_ARG=KSU_VERSION=$KSU_VERSION" >> $GITHUB_ENV
             else
-                KSU_VERSION=$(expr $(git rev-list --count main) + 37185 2>/dev/null || echo 114514)
+              KSU_VERSION=$(expr $(git rev-list --count main) + 37185 2>/dev/null || echo 114514)
+              echo "CUSTOM_KSU_VERSION_ARG=" >> $GITHUB_ENV
             fi
             echo "KSUVER=$KSU_VERSION" >> $GITHUB_ENV
             echo "ksuver=$KSU_VERSION" >> $GITHUB_OUTPUT
@@ -205,22 +208,27 @@ jobs:
             done
             [ -z "$KSU_API_VERSION" ] && KSU_API_VERSION="3.1.7"
             echo "KSU_API_VERSION=$KSU_API_VERSION" >> $GITHUB_ENV
-            if [ -n "$CUSTOM_KSU_FULL" ]; then
-                FINAL_FULL="$CUSTOM_KSU_FULL"
-                echo "CUSTOM_KSU_VERSION_FULL_ARG=KSU_VERSION_FULL=\"$FINAL_FULL\"" >> $GITHUB_ENV
+
+            if [ -n "${{ github.event.inputs.custom_ksu_version_full }}" ]; then
+              FINAL_KSU_VERSION_FULL="${{ github.event.inputs.custom_ksu_version_full }}"
+              echo "CUSTOM_KSU_VERSION_FULL_ARG=KSU_VERSION_FULL=\"$FINAL_KSU_VERSION_FULL\"" >> $GITHUB_ENV
             else
-                FINAL_FULL="v${KSU_API_VERSION}-${GIT_COMMIT_HASH}-🌸"
+              FINAL_KSU_VERSION_FULL="v${KSU_API_VERSION}-${GIT_COMMIT_HASH}-🌸"
+              echo "CUSTOM_KSU_VERSION_FULL_ARG=" >> $GITHUB_ENV
             fi
-            VERSION_DEFINITIONS=$'define get_ksu_version_full\nv\\$1-'"$GIT_COMMIT_HASH"$'-🌸\nendef\n\nKSU_VERSION_API := '"$KSU_API_VERSION"$'\nKSU_VERSION_FULL := '"$FINAL_FULL"
+
+            VERSION_DEFINITIONS=$'define get_ksu_version_full\nv\\$1-'"$GIT_COMMIT_HASH"$'-🌸\nendef\n\nKSU_VERSION_API := '"$KSU_API_VERSION"$'\nKSU_VERSION_FULL := '"$FINAL_KSU_VERSION_FULL"
             sed -i '/define get_ksu_version_full/,/endef/d' kernel/Kbuild
             sed -i '/KSU_VERSION_API :=/d' kernel/Kbuild
             sed -i '/KSU_VERSION_FULL :=/d' kernel/Kbuild
             awk -v def="$VERSION_DEFINITIONS" '/REPO_OWNER :=/ {print; print def; inserted=1; next} 1 END {if (!inserted) print def}' kernel/Kbuild > kernel/Kbuild.tmp && mv kernel/Kbuild.tmp kernel/Kbuild
-            if [ -n "$CUSTOM_KSU_NUMERIC" ]; then
-                KSU_VERSION="$CUSTOM_KSU_NUMERIC"
-                echo "CUSTOM_KSU_VERSION_ARG=KSU_VERSION=$KSU_VERSION" >> $GITHUB_ENV
+
+            if [ -n "${{ github.event.inputs.custom_ksu_version }}" ]; then
+              KSU_VERSION="${{ github.event.inputs.custom_ksu_version }}"
+              echo "CUSTOM_KSU_VERSION_ARG=KSU_VERSION=$KSU_VERSION" >> $GITHUB_ENV
             else
-                KSU_VERSION=$(expr $(git rev-list --count main) + 30700 2>/dev/null || echo 114514)
+              KSU_VERSION=$(expr $(git rev-list --count main) + 30700 2>/dev/null || echo 114514)
+              echo "CUSTOM_KSU_VERSION_ARG=" >> $GITHUB_ENV
             fi
             echo "KSUVER=$KSU_VERSION" >> $GITHUB_ENV
             echo "ksuver=$KSU_VERSION" >> $GITHUB_OUTPUT
@@ -599,8 +607,3 @@ jobs:
             FULL_VERSION=${{ format('{0}.89-{1}', env.KERNEL_VERSION, env.KERNEL_NAME) }}
             echo "FULL_VERSION=$FULL_VERSION" >> $GITHUB_ENV
           fi
-          TIME="$(TZ='Asia/Shanghai' date +'%y%m%d%H%M%S')"
-          TIME_FORM="$(TZ='Asia/Shanghai' date +'%Y-%m-%d %H:%M:%S')"
-          echo "TIME=$TIME" >> $GITHUB_ENV
-          echo "TIME_FORM=$TIME_FORM" >> $GITHUB_ENV
-          echo "TAG_HEAD=OPPO+OPlus+Realme-A15-build" >> $GITHUB_ENV
