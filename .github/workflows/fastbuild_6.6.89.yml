@@ -1,4 +1,4 @@
-Name: 加速版构建 6.6.89 欧加真OKI内核
+name: 加速版构建 6.6.89 欧加真OKI内核
 
 env:
   TZ: Asia/Shanghai
@@ -285,6 +285,8 @@ jobs:
             echo "KSUVER=$KSU_VERSION" >> $GITHUB_ENV
             echo "ksuver=$KSU_VERSION" >> $GITHUB_OUTPUT
             sed -i "s/KSU_VERSION_FALLBACK := 1/KSU_VERSION_FALLBACK := $KSU_VERSION/g" kernel/Kbuild
+            KSU_GIT_TAG=$(curl -sL "https://api.github.com/repos/KernelSU-Next/KernelSU-Next/tags" | grep -o '"name": *"[^"]*"' | head -n 1 | sed 's/"name": "//;s/"//')
+            sed -i "s/KSU_VERSION_TAG_FALLBACK := v0.0.1/KSU_VERSION_TAG_FALLBACK := $KSU_GIT_TAG/g" kernel/Kbuild
             cd ../common/drivers/kernelsu
             wget https://github.com/cctv18/oppo_oplus_realme_sm8750/raw/refs/heads/main/other_patch/apk_sign.patch
             patch -p2 -N -F 3 < apk_sign.patch || true
@@ -358,6 +360,9 @@ jobs:
                 sed -i 's|.*clang-format --dry-run.*| ccflags-y += -Wno-declaration-after-statement -Wno-unused-function -Wno-unused-variable|' "$PATCH_FILE"
                 echo "补丁修复完成！"
               fi
+            else
+              echo "未找到KSU补丁！"
+              exit 1
             fi
             cp ./susfs4ksu/kernel_patches/50_add_susfs_in_gki-${{ env.ANDROID_VERSION }}-${{ env.KERNEL_VERSION }}.patch ./common/
             cp ./susfs4ksu/kernel_patches/fs/* ./common/fs/
@@ -384,6 +389,9 @@ jobs:
                 sed -i 's|.*clang-format --dry-run.*| ccflags-y += -Wno-declaration-after-statement -Wno-unused-function -Wno-unused-variable|' "$PATCH_FILE"
                 echo "补丁修复完成！"
               fi
+            else
+              echo "未找到KSU补丁！"
+              exit 1
             fi
             cp ./susfs4ksu/kernel_patches/50_add_susfs_in_gki-${{ env.ANDROID_VERSION }}-${{ env.KERNEL_VERSION }}.patch ./common/
             cp ./susfs4ksu/kernel_patches/fs/* ./common/fs/
@@ -393,6 +401,8 @@ jobs:
             cd ../common
             patch -p1 < 50_add_susfs_in_gki-${{ env.ANDROID_VERSION }}-${{ env.KERNEL_VERSION }}.patch || true
             patch -p1 -N -F 3 < 69_hide_stuff.patch || true
+          else
+            echo "已选择无内置KernelSU模式，跳过susfs配置..."
           fi
           
       - name: 应用lz4 1.10.0 & zstd 1.5.7补丁
@@ -475,7 +485,7 @@ jobs:
           echo "CONFIG_NETFILTER_XT_SET=y" >> ./common/arch/arm64/configs/gki_defconfig
           echo "CONFIG_IP_SET=y" >> ./common/arch/arm64/configs/gki_defconfig
           echo "CONFIG_IP_SET_MAX=65534" >> ./common/arch/arm64/configs/gki_defconfig
-          echo "IP_SET_BITMAP_IP=y" >> ./common/arch/arm64/configs/gki_defconfig
+          echo "CONFIG_IP_SET_BITMAP_IP=y" >> ./common/arch/arm64/configs/gki_defconfig
           echo "CONFIG_IP_SET_BITMAP_IPMAC=y" >> ./common/arch/arm64/configs/gki_defconfig
           echo "CONFIG_IP_SET_BITMAP_PORT=y" >> ./common/arch/arm64/configs/gki_defconfig
           echo "CONFIG_IP_SET_HASH_IP=y" >> ./common/arch/arm64/configs/gki_defconfig
@@ -584,14 +594,14 @@ jobs:
           export CCACHE_DIR="${{ env.CCACHE_DIR }}"
           cd kernel_workspace/common
           
-          if [[ ${{ github.event.inputs.ksu_type }} != "none" ]]; then
-            KSU_SRC_DIR="KernelSU"
-            [[ ${{ github.event.inputs.ksu_type }} == "ksunext" ]] && KSU_SRC_DIR="KernelSU-Next"
-            rm -rf ./drivers/kernelsu
-            cp -r ../$KSU_SRC_DIR ./drivers/kernelsu
-            if ! grep -q "kernelsu" drivers/Makefile; then
-              echo "obj-y += kernelsu/" >> drivers/Makefile
-            fi
+          if [[ ${{ github.event.inputs.ksu_type }} == "ksunext" ]]; then
+            ln -sf ../KernelSU-Next ./drivers/kernelsu
+          else
+            ln -sf ../KernelSU ./drivers/kernelsu
+          fi
+          
+          if ! grep -q "kernelsu" drivers/Makefile; then
+            echo "obj-y += kernelsu/" >> drivers/Makefile
           fi
 
           wget https://github.com/cctv18/oppo_oplus_realme_sm8750/raw/refs/heads/main/lib/libfakestat.so
@@ -600,42 +610,14 @@ jobs:
           export FAKESTAT="2025-05-25 12:00:00"
           export FAKETIME="@2025-05-25 13:00:00"
           export PRELOAD_LIBS="$(pwd)/libfakestat.so $(pwd)/libfaketimeMT.so"
+          echo -e '#!/bin/bash\nexport LD_PRELOAD="'$PRELOAD_LIBS'"\nexport FAKESTAT="2025-05-25 12:00:00"\nexport FAKETIME="@2025-05-25 13:00:00"\nccache clang "$@"' > cc-wrapper
+          echo -e '#!/bin/bash\nexport LD_PRELOAD="'$PRELOAD_LIBS'"\nexport FAKESTAT="2025-05-25 12:00:00"\nexport FAKETIME="@2025-05-25 13:00:00"\nld.lld "$@"' > ld-wrapper
+          chmod +x cc-wrapper ld-wrapper
           
-          echo '#!/bin/bash' > cc-wrapper
-          echo 'export LD_PRELOAD="'$PRELOAD_LIBS'"' >> cc-wrapper
-          echo 'export FAKESTAT="'$FAKESTAT'"' >> cc-wrapper
-          echo 'export FAKETIME="'$FAKETIME'"' >> cc-wrapper
-          echo 'ccache clang "$@"' >> cc-wrapper
-          
-          echo '#!/bin/bash' > ld-wrapper
-          echo 'export LD_PRELOAD="'$PRELOAD_LIBS'"' >> ld-wrapper
-          echo 'export FAKESTAT="'$FAKESTAT'"' >> ld-wrapper
-          echo 'export FAKETIME="'$FAKETIME'"' >> ld-wrapper
-          echo 'ld.lld "$@"' >> ld-wrapper
-          
-          echo '#!/bin/bash' > test-wrapper.sh
-          echo 'export LD_PRELOAD="'$PRELOAD_LIBS'"' >> test-wrapper.sh
-          echo 'export FAKESTAT="'$FAKESTAT'"' >> test-wrapper.sh
-          echo 'export FAKETIME="'$FAKETIME'"' >> test-wrapper.sh
-          echo 'echo ">>> Wrapper 内部环境检查完毕."' >> test-wrapper.sh
-          echo 'exec "$@"' >> test-wrapper.sh
-          chmod +x cc-wrapper ld-wrapper test-wrapper.sh
-          
-          echo "--- [Wrapper Test] 正在测试 (date) 命令 ---"
-          ./test-wrapper.sh date
-          echo "--- [Wrapper Test] 正在测试 (stat) 命令 ---"
-          ./test-wrapper.sh stat ./Makefile
-          echo "--- [Wrapper Test] 测试完毕 ---"
-          
-          sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /opt/hostedtoolcache/CodeQL &
-          
-          make -j$(nproc --all) LLVM=1 ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- CC="ccache clang" LD="ld.lld" HOSTLD=ld.lld O=out gki_defconfig &&
+          sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc &
+          make -j$(nproc --all) LLVM=1 ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- CC="ccache clang" LD="ld.lld" HOSTLD=ld.lld O=out KCFLAGS+=-O2 KCFLAGS+=-Wno-error gki_defconfig &&
           make -j$(nproc --all) LLVM=1 ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- CC="$(pwd)/cc-wrapper" LD="$(pwd)/ld-wrapper" HOSTLD=ld.lld O=out KCFLAGS+=-O2 KCFLAGS+=-Wno-error ${{ env.CUSTOM_KSU_VERSION_ARG }} ${{ env.CUSTOM_KSU_VERSION_FULL_ARG }} Image
           
-          echo "内核编译完成！"
-          ccache -s
-          df -h
-         
       - name: 打包镜像
         run: |
           cd kernel_workspace
