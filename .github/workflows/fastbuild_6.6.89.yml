@@ -110,7 +110,7 @@ jobs:
           sudo apt purge man-db &&
           sudo rm -rf /var/lib/man-db/auto-update &&
           sudo apt update &&
-          sudo apt-get install -y --no-install-recommends binutils python-is-python3 libssl-dev libelf-dev ccache aria2 bc bison flex
+          sudo apt-get install -y --no-install-recommends binutils python-is-python3 libssl-dev libelf-dev ccache aria2 bc bison flex pahole
           
           echo "正在克隆源码仓库..."
           aria2c -s16 -x16 -k1M https://github.com/cctv18/android_kernel_common_oneplus_sm8750/archive/refs/heads/oneplus/sm8750_v_16.0.0_oneplus_13_6.6.89.zip -o common.zip && 
@@ -183,13 +183,14 @@ jobs:
         id: ksu_version
         run: |
           cd kernel_workspace
+          echo "CUSTOM_KSU_VERSION_ARG=" >> $GITHUB_ENV
+          echo "CUSTOM_KSU_VERSION_FULL_ARG=" >> $GITHUB_ENV
           if [[ ${{ github.event.inputs.ksu_type }} == "sukisu" ]]; then
             echo "正在配置SukiSU Ultra..."
             curl -LSs "https://raw.githubusercontent.com/ShirkNeko/SukiSU-Ultra/refs/heads/main/kernel/setup.sh" | bash -s builtin
             cd ./KernelSU
             GIT_COMMIT_HASH=$(git rev-parse --short=8 HEAD)
             echo "当前提交哈希: $GIT_COMMIT_HASH"
-            export KSU_VERSION=$KSU_VERSION
             for i in {1..3}; do
               KSU_API_VERSION=$(curl -s "https://raw.githubusercontent.com/ShirkNeko/SukiSU-Ultra/refs/heads/builtin/kernel/Kbuild" | 
                 grep -m1 "KSU_VERSION_API :=" | 
@@ -221,11 +222,9 @@ jobs:
               echo "CUSTOM_KSU_VERSION_ARG=KSU_VERSION=$KSU_VERSION" >> $GITHUB_ENV
             else
               KSU_VERSION=$(expr $(git rev-list --count main) + 37185 2>/dev/null || echo 114514)
-              echo "CUSTOM_KSU_VERSION_ARG=" >> $GITHUB_ENV
             fi
             echo "KSUVER=$KSU_VERSION" >> $GITHUB_ENV
             echo "ksuver=$KSU_VERSION" >> $GITHUB_OUTPUT
-            echo "CUSTOM_KSU_VERSION_FULL_ARG=" >> $GITHUB_ENV
 
             grep -A10 "REPO_OWNER" kernel/Kbuild
             grep "KSU_VERSION_FULL" kernel/Kbuild
@@ -236,7 +235,6 @@ jobs:
             cd ./KernelSU
             GIT_COMMIT_HASH=$(git rev-parse --short=8 HEAD)
             echo "当前提交哈希: $GIT_COMMIT_HASH"
-            export KSU_VERSION=$KSU_VERSION
             for i in {1..3}; do
               KSU_API_VERSION=$(curl -s "https://raw.githubusercontent.com/ReSukiSU/ReSukiSU/builtin/kernel/Kbuild" | 
                 grep -m1 "KSU_VERSION_API :=" | 
@@ -268,11 +266,9 @@ jobs:
               echo "CUSTOM_KSU_VERSION_ARG=KSU_VERSION=$KSU_VERSION" >> $GITHUB_ENV
             else
               KSU_VERSION=$(expr $(git rev-list --count main) + 30700 2>/dev/null || echo 114514)
-              echo "CUSTOM_KSU_VERSION_ARG=" >> $GITHUB_ENV
             fi
             echo "KSUVER=$KSU_VERSION" >> $GITHUB_ENV
             echo "ksuver=$KSU_VERSION" >> $GITHUB_OUTPUT
-            echo "CUSTOM_KSU_VERSION_FULL_ARG=" >> $GITHUB_ENV
 
             grep -A10 "REPO_OWNER" kernel/Kbuild
             grep "KSU_VERSION_FULL" kernel/Kbuild
@@ -285,8 +281,6 @@ jobs:
             KSU_VERSION=$(expr $(curl -sI "https://api.github.com/repos/pershoot/KernelSU-Next/commits?sha=dev&per_page=1" | grep -i "link:" | sed -n 's/.*page=\([0-9]*\)>; rel="last".*/\1/p') "+" 30000)
             echo "KSUVER=$KSU_VERSION" >> $GITHUB_ENV
             echo "ksuver=$KSU_VERSION" >> $GITHUB_OUTPUT
-            echo "CUSTOM_KSU_VERSION_ARG=" >> $GITHUB_ENV
-            echo "CUSTOM_KSU_VERSION_FULL_ARG=" >> $GITHUB_ENV
             sed -i "s/KSU_VERSION_FALLBACK := 1/KSU_VERSION_FALLBACK := $KSU_VERSION/g" kernel/Kbuild
             KSU_GIT_TAG=$(curl -sL "https://api.github.com/repos/KernelSU-Next/KernelSU-Next/tags" | grep -o '"name": *"[^"]*"' | head -n 1 | sed 's/"name": "//;s/"//')
             sed -i "s/KSU_VERSION_TAG_FALLBACK := v0.0.1/KSU_VERSION_TAG_FALLBACK := $KSU_GIT_TAG/g" kernel/Kbuild
@@ -300,8 +294,6 @@ jobs:
             KSU_VERSION=$(expr $(curl -sI "https://api.github.com/repos/5ec1cff/KernelSU/commits?sha=main&per_page=1" | grep -i "link:" | sed -n 's/.*page=\([0-9]*\)>; rel="last".*/\1/p') "+" 30000)
             echo "KSUVER=$KSU_VERSION" >> $GITHUB_ENV
             echo "ksuver=$KSU_VERSION" >> $GITHUB_OUTPUT
-            echo "CUSTOM_KSU_VERSION_ARG=" >> $GITHUB_ENV
-            echo "CUSTOM_KSU_VERSION_FULL_ARG=" >> $GITHUB_ENV
             sed -i "s/DKSU_VERSION=16/DKSU_VERSION=${KSU_VERSION}/" kernel/Kbuild
           elif [[ ${{ github.event.inputs.ksu_type }} == "ksu" ]]; then
             echo "正在配置原版 KernelSU (tiann/KernelSU)..."
@@ -310,13 +302,9 @@ jobs:
             KSU_VERSION=$(expr $(curl -sI "https://api.github.com/repos/tiann/KernelSU/commits?sha=main&per_page=1" | grep -i "link:" | sed -n 's/.*page=\([0-9]*\)>; rel="last".*/\1/p') "+" 30000)
             echo "KSUVER=$KSU_VERSION" >> $GITHUB_ENV
             echo "ksuver=$KSU_VERSION" >> $GITHUB_OUTPUT
-            echo "CUSTOM_KSU_VERSION_ARG=" >> $GITHUB_ENV
-            echo "CUSTOM_KSU_VERSION_FULL_ARG=" >> $GITHUB_ENV
             sed -i "s/DKSU_VERSION=16/DKSU_VERSION=${KSU_VERSION}/" kernel/Kbuild
           else
             echo "已选择无内置KernelSU模式，跳过KernelSU配置..."
-            echo "CUSTOM_KSU_VERSION_ARG=" >> $GITHUB_ENV
-            echo "CUSTOM_KSU_VERSION_FULL_ARG=" >> $GITHUB_ENV
           fi
 
       - name: 应用 KernelSU & SUSFS 补丁
@@ -597,13 +585,13 @@ jobs:
             for f in ./common/scripts/setlocalversion; do
               sed -i "\$s|echo \"\\\$res\"|echo \"-${{ github.event.inputs.kernel_suffix }}\"|" "$f"
             done
-            sudo sed -i 's/-4k/-${{ github.event.inputs.kernel_suffix }}/g' ./common/arch/arm64/configs/gki_defconfig
+            sudo sed -i "s/-4k/-${{ github.event.inputs.kernel_suffix }}/g" ./common/arch/arm64/configs/gki_defconfig
           else
             echo "当前内核版本后缀：${{ env.KERNEL_NAME }}"
             for f in ./common/scripts/setlocalversion; do
               sed -i "\$s|echo \"\\\$res\"|echo \"-${{ env.KERNEL_NAME }}\"|" "$f"
             done
-            sudo sed -i 's/-4k/-${{ env.KERNEL_NAME }}/g' ./common/arch/arm64/configs/gki_defconfig
+            sudo sed -i "s/-4k/-${{ env.KERNEL_NAME }}/g" ./common/arch/arm64/configs/gki_defconfig
           fi
           sed -i 's/${scm_version}//' ./common/scripts/setlocalversion
           echo "CONFIG_LOCALVERSION_AUTO=n" >> ./common/arch/arm64/configs/gki_defconfig
@@ -669,6 +657,8 @@ jobs:
           sudo rm -rf /opt/ghc &
           sudo rm -rf /opt/hostedtoolcache/CodeQL &
           make -j$(nproc --all) LLVM=1 ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- CC="ccache clang" LD="ld.lld" HOSTLD=ld.lld O=out KCFLAGS+=-O2 KCFLAGS+=-Wno-error gki_defconfig &&
+          echo "CONFIG_DEBUG_INFO_BTF=n" >> out/.config &&
+          echo "CONFIG_DEBUG_INFO_BTF_MODULES=n" >> out/.config &&
           make -j$(nproc --all) LLVM=1 ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- CC="$(pwd)/cc-wrapper" LD="$(pwd)/ld-wrapper" HOSTLD=ld.lld O=out KCFLAGS+=-O2 KCFLAGS+=-Wno-error ${{ env.CUSTOM_KSU_VERSION_ARG }} ${{ env.CUSTOM_KSU_VERSION_FULL_ARG }} Image
           
           echo "内核编译完成！"
