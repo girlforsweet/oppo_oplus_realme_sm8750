@@ -217,7 +217,6 @@ jobs:
             # 将 API 版本号存储到 GitHub 环境变量
             echo "KSU_API_VERSION=$KSU_API_VERSION" >> $GITHUB_ENV
             
-            # --- 自定义版本字符串注入 ---
             if [ -n "${{ github.event.inputs.custom_ksu_version_full }}" ]; then
               FINAL_KSU_VERSION_FULL="${{ github.event.inputs.custom_ksu_version_full }}"
               echo "CUSTOM_KSU_VERSION_FULL_ARG=KSU_VERSION_FULL=\"$FINAL_KSU_VERSION_FULL\"" >> $GITHUB_ENV
@@ -226,28 +225,20 @@ jobs:
               echo "CUSTOM_KSU_VERSION_FULL_ARG=" >> $GITHUB_ENV
             fi
 
-            # 创建版本定义模板&版本格式函数: 使用获取的提交哈希和固定后缀
-            # KSU_VERSION_API: API 版本定义
-            # KSU_VERSION_FULL: 完整版本定义
+            # 创建版本 definition 模板 & 版本格式函数
             VERSION_DEFINITIONS=$'define get_ksu_version_full\nv\\$1-'"$GIT_COMMIT_HASH"$'-🌸\nendef\n\nKSU_VERSION_API := '"$KSU_API_VERSION"$'\nKSU_VERSION_FULL := '"$FINAL_KSU_VERSION_FULL"
             # 清理内核 Kbuild 中的旧版本定义
-            # 删除版本函数
             sed -i '/define get_ksu_version_full/,/endef/d' kernel/Kbuild
-            # 删除 API 版本定义
             sed -i '/KSU_VERSION_API :=/d' kernel/Kbuild
-            # 删除完整版本定义
             sed -i '/KSU_VERSION_FULL :=/d' kernel/Kbuild
             # 在 REPO_OWNER 行后插入新版本定义
             awk -v def="$VERSION_DEFINITIONS" '
-              # 当找到 REPO_OWNER 行时，插入版本定义并设置标记
               /REPO_OWNER :=/ {print; print def; inserted=1; next}
-              # 打印所有行
               1
-              # 如果未找到插入点，在文件末尾追加
               END {if (!inserted) print def}
             ' kernel/Kbuild > kernel/Kbuild.tmp && mv kernel/Kbuild.tmp kernel/Kbuild
 
-            # 生成自定义版本号（基于提交计数）, 失败时使用 114514
+            # 生成自定义版本号
             if [ -n "${{ github.event.inputs.custom_ksu_version }}" ]; then
               KSU_VERSION="${{ github.event.inputs.custom_ksu_version }}"
               echo "CUSTOM_KSU_VERSION_ARG=KSU_VERSION=$KSU_VERSION" >> $GITHUB_ENV
@@ -255,13 +246,12 @@ jobs:
               KSU_VERSION=$(expr $(git rev-list --count main) + 37185 2>/dev/null || echo 114514)
               echo "CUSTOM_KSU_VERSION_ARG=" >> $GITHUB_ENV
             fi
-            # 存储版本号到 GitHub 环境变量
             echo "KSUVER=$KSU_VERSION" >> $GITHUB_ENV
             echo "ksuver=$KSU_VERSION" >> $GITHUB_OUTPUT
 
             # 验证修改结果
-            grep -A10 "REPO_OWNER" kernel/Kbuild  # 检查插入点后的内容
-            grep "KSU_VERSION_FULL" kernel/Kbuild # 确认版本定义存在
+            grep -A10 "REPO_OWNER" kernel/Kbuild  
+            grep "KSU_VERSION_FULL" kernel/Kbuild 
             echo "SukiSU版本号: $FINAL_KSU_VERSION_FULL"
           elif [[ ${{ github.event.inputs.ksu_type }} == "resukisu" ]]; then
             echo "正在配置ReSukiSU..."
@@ -289,7 +279,6 @@ jobs:
             # 将 API 版本号存储到 GitHub 环境变量
             echo "KSU_API_VERSION=$KSU_API_VERSION" >> $GITHUB_ENV
             
-            # --- 自定义版本字符串注入 ---
             if [ -n "${{ github.event.inputs.custom_ksu_version_full }}" ]; then
               FINAL_KSU_VERSION_FULL="${{ github.event.inputs.custom_ksu_version_full }}"
               echo "CUSTOM_KSU_VERSION_FULL_ARG=KSU_VERSION_FULL=\"$FINAL_KSU_VERSION_FULL\"" >> $GITHUB_ENV
@@ -298,28 +287,20 @@ jobs:
               echo "CUSTOM_KSU_VERSION_FULL_ARG=" >> $GITHUB_ENV
             fi
 
-            # 创建版本定义模板&版本格式函数: 使用获取的提交哈希和固定后缀
-            # KSU_VERSION_API: API 版本定义
-            # KSU_VERSION_FULL: 完整版本定义
+            # 创建版本 definition 模板 & 版本格式函数
             VERSION_DEFINITIONS=$'define get_ksu_version_full\nv\\$1-'"$GIT_COMMIT_HASH"$'-🌸\nendef\n\nKSU_VERSION_API := '"$KSU_API_VERSION"$'\nKSU_VERSION_FULL := '"$FINAL_KSU_VERSION_FULL"
             # 清理内核 Kbuild 中的旧版本定义
-            # 删除版本函数
             sed -i '/define get_ksu_version_full/,/endef/d' kernel/Kbuild
-            # 删除 API 版本定义
             sed -i '/KSU_VERSION_API :=/d' kernel/Kbuild
-            # 删除完整版本定义
             sed -i '/KSU_VERSION_FULL :=/d' kernel/Kbuild
             # 在 REPO_OWNER 行后插入新版本定义
             awk -v def="$VERSION_DEFINITIONS" '
-              # 当找到 REPO_OWNER 行时，插入版本定义并设置标记
               /REPO_OWNER :=/ {print; print def; inserted=1; next}
-              # 打印所有行
               1
-              # 如果未找到插入点，在文件末尾追加
               END {if (!inserted) print def}
             ' kernel/Kbuild > kernel/Kbuild.tmp && mv kernel/Kbuild.tmp kernel/Kbuild
 
-            # 生成自定义版本号（基于提交计数）, 失败时使用 114514
+            # 生成自定义版本号
             if [ -n "${{ github.event.inputs.custom_ksu_version }}" ]; then
               KSU_VERSION="${{ github.event.inputs.custom_ksu_version }}"
               echo "CUSTOM_KSU_VERSION_ARG=KSU_VERSION=$KSU_VERSION" >> $GITHUB_ENV
@@ -332,8 +313,8 @@ jobs:
             echo "ksuver=$KSU_VERSION" >> $GITHUB_OUTPUT
 
             # 验证修改结果
-            grep -A10 "REPO_OWNER" kernel/Kbuild  # 检查插入点后的内容
-            grep "KSU_VERSION_FULL" kernel/Kbuild # 确认版本定义存在
+            grep -A10 "REPO_OWNER" kernel/Kbuild  
+            grep "KSU_VERSION_FULL" kernel/Kbuild 
             echo "ReSukiSU版本号: $FINAL_KSU_VERSION_FULL"
           elif [[ ${{ github.event.inputs.ksu_type }} == "ksunext" ]]; then
             echo "正在配置KernelSU Next..."
