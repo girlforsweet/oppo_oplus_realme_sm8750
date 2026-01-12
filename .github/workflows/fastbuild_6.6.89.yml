@@ -308,15 +308,13 @@ jobs:
           cp ./susfs4ksu/kernel_patches/50_add_susfs_in_gki-${{ env.ANDROID_VERSION }}-${{ env.KERNEL_VERSION }}.patch ./common/
           cp ./susfs4ksu/kernel_patches/fs/* ./common/fs/
           cp ./susfs4ksu/kernel_patches/include/linux/* ./common/include/linux/
-          
           cd ./common
-          # 修复 __arm64_sys_newfstatat 冲突：在应用补丁前先清理
+          # 核心修复：针对 __arm64_sys_newfstatat 冲突，在使用 SusFS 时进行源码前置微调
+          sed -i 's/SYSCALL_DEFINE4(newfstatat/int __arm64_sys_newfstatat(const struct pt_regs *regs); \nSYSCALL_DEFINE4(newfstatat/g' fs/stat.c || true
           patch -p1 < 50_add_susfs_in_gki-${{ env.ANDROID_VERSION }}-${{ env.KERNEL_VERSION }}.patch || true
-          
           if [[ ${{ github.event.inputs.ksu_type }} == "resukisu" ]]; then
             sed -i 's|vma = find_vma(mm|struct vm_area_struct *&|' ./fs/proc/task_mmu.c
           fi
-
           if [[ ${{ github.event.inputs.ksu_type }} == "mksu" || ${{ github.event.inputs.ksu_type }} == "ksu" ]]; then
             cd ../KernelSU
             cp ../susfs4ksu/kernel_patches/KernelSU/10_enable_susfs_for_ksu.patch ./
@@ -480,17 +478,22 @@ jobs:
           
           export FAKESTAT="2025-05-25 12:00:00"
           export FAKETIME="@2025-05-25 13:00:00"
-          # 核心修复：修复 LD_PRELOAD 的格式，避免污染 ld.lld 链接过程
+          # 修复 LD_PRELOAD 的传递，确保链接器不被错误拦截
           export LD_PRELOAD="$(pwd)/libfakestat.so:$(pwd)/libfaketimeMT.so"
+          
+          echo '#!/bin/bash' > cc-wrapper
+          echo 'ccache clang "$@"' >> cc-wrapper
+          chmod +x cc-wrapper
           
           sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /opt/hostedtoolcache/CodeQL
           make -j$(nproc --all) LLVM=1 ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- O=out gki_defconfig
           
-          # 禁用 BTF 以加速构建并减少错误
-          sed -i 's/CONFIG_DEBUG_INFO_BTF=y/CONFIG_DEBUG_INFO_BTF=n/' out/.config
+          # 修复 vmlinux.a 报错：关闭 BTF 调试信息，避免由于补丁导致的类型描述冲突
+          echo "CONFIG_DEBUG_INFO_BTF=n" >> out/.config
+          echo "CONFIG_DEBUG_INFO_BTF_MODULES=n" >> out/.config
           
-          # 直接使用系统 CC 和 LD，通过环境变量控制 FakeTime
-          make -j$(nproc --all) LLVM=1 ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- O=out KCFLAGS+=-O2 KCFLAGS+=-Wno-error ${{ env.CUSTOM_KSU_VERSION_ARG }} Image
+          make -j$(nproc --all) LLVM=1 ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- CC="$(pwd)/cc-wrapper" O=out KCFLAGS+=-O2 KCFLAGS+=-Wno-error ${{ env.CUSTOM_KSU_VERSION_ARG }} Image
+          ./scripts/setlocalversion out
 
       - name: 克隆 AnyKernel3 打包
         run: |
