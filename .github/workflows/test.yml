@@ -184,8 +184,8 @@ jobs:
         run: |
           cd kernel_workspace
           
-          CUSTOM_K_VER="${{ github.event.inputs.custom_ksu_version }}"
-          CUSTOM_K_FULL="${{ github.event.inputs.custom_ksu_version_full }}"
+          INPUT_K_VER="${{ github.event.inputs.custom_ksu_version }}"
+          INPUT_K_FULL="${{ github.event.inputs.custom_ksu_version_full }}"
 
           if [[ ${{ github.event.inputs.ksu_type }} == "sukisu" ]]; then
             echo "正在配置SukiSU Ultra..."
@@ -199,29 +199,29 @@ jobs:
             [ -z "$KSU_API_VERSION" ] && KSU_API_VERSION="3.1.7"
             echo "KSU_API_VERSION=$KSU_API_VERSION" >> $GITHUB_ENV
             
-            if [ -n "$CUSTOM_K_FULL" ]; then
-              FINAL_FULL="$CUSTOM_K_FULL"
-              echo "ARG_KSU_FULL=KSU_VERSION_FULL=\"$FINAL_FULL\"" >> $GITHUB_ENV
+            if [ -n "$INPUT_K_FULL" ]; then
+              FINAL_F="$INPUT_K_FULL"
+              echo "FINAL_KSU_FULL_ARG=KSU_VERSION_FULL=\"$FINAL_F\"" >> $GITHUB_ENV
             else
-              FINAL_FULL="v${KSU_API_VERSION}-${GIT_COMMIT_HASH}-🌸"
-              echo "ARG_KSU_FULL=" >> $GITHUB_ENV
+              FINAL_F="v${KSU_API_VERSION}-${GIT_COMMIT_HASH}-🌸"
+              echo "FINAL_KSU_FULL_ARG=" >> $GITHUB_ENV
             fi
             
-            VERSION_DEFINITIONS=$'define get_ksu_version_full\nv\\$1-'"$GIT_COMMIT_HASH"$'-🌸\nendef\n\nKSU_VERSION_API := '"$KSU_API_VERSION"$'\nKSU_VERSION_FULL := '"$FINAL_FULL"
+            VERSION_DEFINITIONS=$'define get_ksu_version_full\nv\\$1-'"$GIT_COMMIT_HASH"$'-🌸\nendef\n\nKSU_VERSION_API := '"$KSU_API_VERSION"$'\nKSU_VERSION_FULL := '"$FINAL_F"
             sed -i '/define get_ksu_version_full/,/endef/d' kernel/Kbuild
             sed -i '/KSU_VERSION_API :=/d' kernel/Kbuild
             sed -i '/KSU_VERSION_FULL :=/d' kernel/Kbuild
             awk -v def="$VERSION_DEFINITIONS" '/REPO_OWNER :=/ {print; print def; inserted=1; next} 1 END {if (!inserted) print def}' kernel/Kbuild > kernel/Kbuild.tmp && mv kernel/Kbuild.tmp kernel/Kbuild
 
-            if [ -n "$CUSTOM_K_VER" ]; then
-              FINAL_VER="$CUSTOM_K_VER"
-              echo "ARG_KSU_VER=KSU_VERSION=$FINAL_VER" >> $GITHUB_ENV
+            if [ -n "$INPUT_K_VER" ]; then
+              FINAL_V="$INPUT_K_VER"
+              echo "FINAL_KSU_VER_ARG=KSU_VERSION=$FINAL_V" >> $GITHUB_ENV
             else
-              FINAL_VER=$(expr $(git rev-list --count main) + 37185 2>/dev/null || echo 114514)
-              echo "ARG_KSU_VER=" >> $GITHUB_ENV
+              FINAL_V=$(expr $(git rev-list --count main) + 37185 2>/dev/null || echo 114514)
+              echo "FINAL_KSU_VER_ARG=" >> $GITHUB_ENV
             fi
-            echo "KSUVER=$FINAL_VER" >> $GITHUB_ENV
-            echo "ksuver=$FINAL_VER" >> $GITHUB_OUTPUT
+            echo "KSUVER=$FINAL_V" >> $GITHUB_ENV
+            echo "ksuver=$FINAL_V" >> $GITHUB_OUTPUT
           elif [[ ${{ github.event.inputs.ksu_type }} == "resukisu" ]]; then
             echo "正在配置ReSukiSU..."
             curl -LSs "https://raw.githubusercontent.com/ReSukiSU/ReSukiSU/refs/heads/main/kernel/setup.sh" | bash -s builtin
@@ -233,84 +233,83 @@ jobs:
             done
             [ -z "$KSU_API_VERSION" ] && KSU_API_VERSION="3.1.7"
             echo "KSU_API_VERSION=$KSU_API_VERSION" >> $GITHUB_ENV
-
-            if [ -n "$CUSTOM_K_FULL" ]; then
-              FINAL_FULL="$CUSTOM_K_FULL"
-              echo "ARG_KSU_FULL=KSU_VERSION_FULL=\"$FINAL_FULL\"" >> $GITHUB_ENV
+            
+            if [ -n "$INPUT_K_FULL" ]; then
+              FINAL_F="$INPUT_K_FULL"
+              echo "FINAL_KSU_FULL_ARG=KSU_VERSION_FULL=\"$FINAL_F\"" >> $GITHUB_ENV
             else
-              FINAL_FULL="v${KSU_API_VERSION}-${GIT_COMMIT_HASH}-🌸"
-              echo "ARG_KSU_FULL=" >> $GITHUB_ENV
+              FINAL_F="v${KSU_API_VERSION}-${GIT_COMMIT_HASH}-🌸"
+              echo "FINAL_KSU_FULL_ARG=" >> $GITHUB_ENV
             fi
-
-            VERSION_DEFINITIONS=$'define get_ksu_version_full\nv\\$1-'"$GIT_COMMIT_HASH"$'-🌸\nendef\n\nKSU_VERSION_API := '"$KSU_API_VERSION"$'\nKSU_VERSION_FULL := '"$FINAL_FULL"
+            
+            VERSION_DEFINITIONS=$'define get_ksu_version_full\nv\\$1-'"$GIT_COMMIT_HASH"$'-🌸\nendef\n\nKSU_VERSION_API := '"$KSU_API_VERSION"$'\nKSU_VERSION_FULL := '"$FINAL_F"
             sed -i '/define get_ksu_version_full/,/endef/d' kernel/Kbuild
             sed -i '/KSU_VERSION_API :=/d' kernel/Kbuild
             sed -i '/KSU_VERSION_FULL :=/d' kernel/Kbuild
             awk -v def="$VERSION_DEFINITIONS" '/REPO_OWNER :=/ {print; print def; inserted=1; next} 1 END {if (!inserted) print def}' kernel/Kbuild > kernel/Kbuild.tmp && mv kernel/Kbuild.tmp kernel/Kbuild
 
-            if [ -n "$CUSTOM_K_VER" ]; then
-              FINAL_VER="$CUSTOM_K_VER"
-              echo "ARG_KSU_VER=KSU_VERSION=$FINAL_VER" >> $GITHUB_ENV
+            if [ -n "$INPUT_K_VER" ]; then
+              FINAL_V="$INPUT_K_VER"
+              echo "FINAL_KSU_VER_ARG=KSU_VERSION=$FINAL_V" >> $GITHUB_ENV
             else
-              FINAL_VER=$(expr $(git rev-list --count main) + 30700 2>/dev/null || echo 114514)
-              echo "ARG_KSU_VER=" >> $GITHUB_ENV
+              FINAL_V=$(expr $(git rev-list --count main) + 30700 2>/dev/null || echo 114514)
+              echo "FINAL_KSU_VER_ARG=" >> $GITHUB_ENV
             fi
-            echo "KSUVER=$FINAL_VER" >> $GITHUB_ENV
-            echo "ksuver=$FINAL_VER" >> $GITHUB_OUTPUT
+            echo "KSUVER=$FINAL_V" >> $GITHUB_ENV
+            echo "ksuver=$FINAL_V" >> $GITHUB_OUTPUT
           elif [[ ${{ github.event.inputs.ksu_type }} == "ksunext" ]]; then
             echo "正在配置KernelSU Next..."
             curl -LSs "https://raw.githubusercontent.com/pershoot/KernelSU-Next/refs/heads/dev-susfs/kernel/setup.sh" | bash -s dev-susfs
             cd KernelSU-Next
             rm -rf .git
-            if [ -n "$CUSTOM_K_VER" ]; then
-               FINAL_VER="$CUSTOM_K_VER"
-               echo "ARG_KSU_VER=KSU_VERSION=$FINAL_VER" >> $GITHUB_ENV
+            if [ -n "$INPUT_K_VER" ]; then
+               FINAL_V="$INPUT_K_VER"
+               echo "FINAL_KSU_VER_ARG=KSU_VERSION=$FINAL_V" >> $GITHUB_ENV
             else
-               FINAL_VER=$(expr $(curl -sI "https://api.github.com/repos/pershoot/KernelSU-Next/commits?sha=dev&per_page=1" | grep -i "link:" | sed -n 's/.*page=\([0-9]*\)>; rel="last".*/\1/p') "+" 30000)
-               echo "ARG_KSU_VER=" >> $GITHUB_ENV
+               FINAL_V=$(expr $(curl -sI "https://api.github.com/repos/pershoot/KernelSU-Next/commits?sha=dev&per_page=1" | grep -i "link:" | sed -n 's/.*page=\([0-9]*\)>; rel="last".*/\1/p') "+" 30000)
+               echo "FINAL_KSU_VER_ARG=" >> $GITHUB_ENV
             fi
-            echo "KSUVER=$FINAL_VER" >> $GITHUB_ENV
-            echo "ksuver=$FINAL_VER" >> $GITHUB_OUTPUT
-            sed -i "s/KSU_VERSION_FALLBACK := 1/KSU_VERSION_FALLBACK := $FINAL_VER/g" kernel/Kbuild
-            if [ -n "$CUSTOM_K_FULL" ]; then
-               FINAL_FULL="$CUSTOM_K_FULL"
-               echo "ARG_KSU_FULL=KSU_VERSION_FULL=\"$FINAL_FULL\"" >> $GITHUB_ENV
+            echo "KSUVER=$FINAL_V" >> $GITHUB_ENV
+            echo "ksuver=$FINAL_V" >> $GITHUB_OUTPUT
+            sed -i "s/KSU_VERSION_FALLBACK := 1/KSU_VERSION_FALLBACK := $FINAL_V/g" kernel/Kbuild
+            if [ -n "$INPUT_K_FULL" ]; then
+               FINAL_F="$INPUT_K_FULL"
+               echo "FINAL_KSU_FULL_ARG=KSU_VERSION_FULL=\"$FINAL_F\"" >> $GITHUB_ENV
             else
-               FINAL_FULL=$(curl -sL "https://api.github.com/repos/KernelSU-Next/KernelSU-Next/tags" | grep -o '"name": *"[^"]*"' | head -n 1 | sed 's/"name": "//;s/"//')
-               echo "ARG_KSU_FULL=" >> $GITHUB_ENV
+               FINAL_F=$(curl -sL "https://api.github.com/repos/KernelSU-Next/KernelSU-Next/tags" | grep -o '"name": *"[^"]*"' | head -n 1 | sed 's/"name": "//;s/"//')
+               echo "FINAL_KSU_FULL_ARG=" >> $GITHUB_ENV
             fi
-            sed -i "s/KSU_VERSION_TAG_FALLBACK := v0.0.1/KSU_VERSION_TAG_FALLBACK := $FINAL_FULL/g" kernel/Kbuild
+            sed -i "s/KSU_VERSION_TAG_FALLBACK := v0.0.1/KSU_VERSION_TAG_FALLBACK := $FINAL_F/g" kernel/Kbuild
             cd ../common/drivers/kernelsu
             wget https://github.com/cctv18/oppo_oplus_realme_sm8750/raw/refs/heads/main/other_patch/apk_sign.patch
             patch -p2 -N -F 3 < apk_sign.patch || true
           elif [[ ${{ github.event.inputs.ksu_type }} == "mksu" || ${{ github.event.inputs.ksu_type }} == "ksu" ]]; then
-            [[ ${{ github.event.inputs.ksu_type }} == "mksu" ]] && SRC_OWNER="5ec1cff" || SRC_OWNER="tiann"
-            curl -LSs "https://raw.githubusercontent.com/$SRC_OWNER/KernelSU/refs/heads/main/kernel/setup.sh" | bash -s main
+            [[ ${{ github.event.inputs.ksu_type }} == "mksu" ]] && S_OWN="5ec1cff" || S_OWN="tiann"
+            curl -LSs "https://raw.githubusercontent.com/$S_OWN/KernelSU/refs/heads/main/kernel/setup.sh" | bash -s main
             cd ./KernelSU
-            if [ -n "$CUSTOM_K_VER" ]; then
-               FINAL_VER="$CUSTOM_K_VER"
-               echo "ARG_KSU_VER=DKSU_VERSION=$FINAL_VER" >> $GITHUB_ENV
+            if [ -n "$INPUT_K_VER" ]; then
+               FINAL_V="$INPUT_K_VER"
+               echo "FINAL_KSU_VER_ARG=DKSU_VERSION=$FINAL_V" >> $GITHUB_ENV
             else
-               FINAL_VER=$(expr $(curl -sI "https://api.github.com/repos/$SRC_OWNER/KernelSU/commits?sha=main&per_page=1" | grep -i "link:" | sed -n 's/.*page=\([0-9]*\)>; rel="last".*/\1/p') "+" 30000)
-               echo "ARG_KSU_VER=" >> $GITHUB_ENV
+               FINAL_V=$(expr $(curl -sI "https://api.github.com/repos/$S_OWN/KernelSU/commits?sha=main&per_page=1" | grep -i "link:" | sed -n 's/.*page=\([0-9]*\)>; rel="last".*/\1/p') "+" 30000)
+               echo "FINAL_KSU_VER_ARG=" >> $GITHUB_ENV
             fi
-            echo "KSUVER=$FINAL_VER" >> $GITHUB_ENV
-            echo "ksuver=$FINAL_VER" >> $GITHUB_OUTPUT
-            sed -i "s/DKSU_VERSION=16/DKSU_VERSION=${FINAL_VER}/" kernel/Kbuild
-            echo "ARG_KSU_FULL=" >> $GITHUB_ENV
+            echo "KSUVER=$FINAL_V" >> $GITHUB_ENV
+            echo "ksuver=$FINAL_V" >> $GITHUB_OUTPUT
+            sed -i "s/DKSU_VERSION=16/DKSU_VERSION=${FINAL_V}/" kernel/Kbuild
+            echo "FINAL_KSU_FULL_ARG=" >> $GITHUB_ENV
           else
-            echo "跳过KernelSU配置..."
             echo "KSUVER=0" >> $GITHUB_ENV
             echo "ksuver=0" >> $GITHUB_OUTPUT
-            echo "ARG_KSU_VER=" >> $GITHUB_ENV
-            echo "ARG_KSU_FULL=" >> $GITHUB_ENV
+            echo "FINAL_KSU_VER_ARG=" >> $GITHUB_ENV
+            echo "FINAL_KSU_FULL_ARG=" >> $GITHUB_ENV
           fi
 
       - name: 应用 KernelSU & SUSFS 补丁
         if: inputs.susfs_enable
         run: |
           cd kernel_workspace
-          if [[ ${{ github.event.inputs.ksu_type }} == "sukisu" || ${{ github.event.inputs.ksu_type }} == "resukisu" || ${{ github.event.inputs.ksu_type }} == "ksunext" || ${{ github.event.inputs.ksu_type }} == "mksu" || ${{ github.event.inputs.ksu_type }} == "ksu" ]]; then
+          if [[ ${{ github.event.inputs.ksu_type }} != "none" ]]; then
             git clone --depth=1 https://gitlab.com/simonpunk/susfs4ksu.git -b gki-${{ env.ANDROID_VERSION }}-${{ env.KERNEL_VERSION }}
             wget https://github.com/cctv18/oppo_oplus_realme_sm8750/raw/refs/heads/main/other_patch/69_hide_stuff.patch -O ./common/69_hide_stuff.patch
             cp ./susfs4ksu/kernel_patches/50_add_susfs_in_gki-${{ env.ANDROID_VERSION }}-${{ env.KERNEL_VERSION }}.patch ./common/
@@ -335,6 +334,7 @@ jobs:
       - name: 应用lz4 1.10.0 & zstd 1.5.7补丁
         if: inputs.lz4_enable
         run: |
+          echo "正在添加lz4 1.10.0 & zstd 1.5.7补丁…"
           cd kernel_workspace
           git clone --depth=1 https://github.com/cctv18/oppo_oplus_realme_sm8750.git
           cp ./oppo_oplus_realme_sm8750/zram_patch/001-lz4.patch ./common/
@@ -347,6 +347,7 @@ jobs:
       - name: 应用 lz4kd 补丁
         if: inputs.lz4kd_enable
         run: |
+          echo "正在添加lz4kd补丁…"
           cd kernel_workspace
           if [ ! -d "SukiSU_patch" ]; then git clone --depth=1 https://github.com/ShirkNeko/SukiSU_patch.git; fi
           cd common
@@ -472,17 +473,17 @@ jobs:
         run: |
           cd kernel_workspace
           if [[ -n "${{ github.event.inputs.kernel_suffix }}" ]]; then
-            SUFFIX_VAL="${{ github.event.inputs.kernel_suffix }}"
+            SUFFIX_V="${{ github.event.inputs.kernel_suffix }}"
             for f in ./common/scripts/setlocalversion; do
-              sed -i "\$s|echo \"\\\$res\"|echo \"-$SUFFIX_VAL\"|" "$f"
+              sed -i "\$s|echo \"\\\$res\"|echo \"-$SUFFIX_V\"|" "$f"
             done
-            sudo sed -i "s/-4k/-$SUFFIX_VAL/g" ./common/arch/arm64/configs/gki_defconfig
+            sudo sed -i "s/-4k/-$SUFFIX_V/g" ./common/arch/arm64/configs/gki_defconfig
           else
-            SUFFIX_VAL="${{ env.KERNEL_NAME }}"
+            SUFFIX_V="${{ env.KERNEL_NAME }}"
             for f in ./common/scripts/setlocalversion; do
-              sed -i "\$s|echo \"\\\$res\"|echo \"-$SUFFIX_VAL\"|" "$f"
+              sed -i "\$s|echo \"\\\$res\"|echo \"-$SUFFIX_V\"|" "$f"
             done
-            sudo sed -i "s/-4k/-$SUFFIX_VAL/g" ./common/arch/arm64/configs/gki_defconfig
+            sudo sed -i "s/-4k/-$SUFFIX_V/g" ./common/arch/arm64/configs/gki_defconfig
           fi
           sed -i 's/${scm_version}//' ./common/scripts/setlocalversion
           echo "CONFIG_LOCALVERSION_AUTO=n" >> ./common/arch/arm64/configs/gki_defconfig
@@ -495,14 +496,14 @@ jobs:
           cd kernel_workspace/common
           
           if [[ ${{ github.event.inputs.ksu_type }} != "none" ]]; then
-            KSU_REAL_SRC="KernelSU"
-            [[ ${{ github.event.inputs.ksu_type }} == "ksunext" ]] && KSU_REAL_SRC="KernelSU-Next"
-            rm -rf ./drivers/kernelsu && cp -r ../$KSU_REAL_SRC ./drivers/kernelsu
+            KSU_SRC_DIR="KernelSU"
+            [[ ${{ github.event.inputs.ksu_type }} == "ksunext" ]] && KSU_SRC_DIR="KernelSU-Next"
+            rm -rf ./drivers/kernelsu && cp -r ../$KSU_SRC_DIR ./drivers/kernelsu
             grep -q "kernelsu" drivers/Makefile || echo "obj-y += kernelsu/" >> drivers/Makefile
           fi
 
-          wget https://github.com/cctv18/oppo_oplus_realme_sm8750/raw/refs/heads/main/lib/libfakestat.so
-          wget https://github.com/cctv18/oppo_oplus_realme_sm8750/raw/refs/heads/main/lib/libfaketimeMT.so
+          wget https://github.com/cctv18/oppo_oplus_realme_sm8750/raw/refs/heads/main/other_patch/libfakestat.so
+          wget https://github.com/cctv18/oppo_oplus_realme_sm8750/raw/refs/heads/main/other_patch/libfaketimeMT.so
           chmod 777 ./*.so
           export FAKESTAT="2025-05-25 12:00:00"
           export FAKETIME="@2025-05-25 13:00:00"
@@ -515,7 +516,7 @@ jobs:
           sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /opt/hostedtoolcache/CodeQL &
           
           make -j$(nproc --all) LLVM=1 ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- CC="ccache clang" LD="ld.lld" HOSTLD=ld.lld O=out gki_defconfig
-          make -j$(nproc --all) LLVM=1 ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- CC="$(pwd)/cc-wrapper" LD="$(pwd)/ld-wrapper" HOSTLD=ld.lld O=out KCFLAGS+=-O2 KCFLAGS+=-Wno-error ${{ env.ARG_KSU_VER }} ${{ env.ARG_KSU_FULL }} Image
+          make -j$(nproc --all) LLVM=1 ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- CC="$(pwd)/cc-wrapper" LD="$(pwd)/ld-wrapper" HOSTLD=ld.lld O=out KCFLAGS+=-O2 KCFLAGS+=-Wno-error ${{ env.FINAL_KSU_VER_ARG }} ${{ env.FINAL_KSU_FULL_ARG }} Image
          
       - name: 应用KPM并修补内核
         run: |
@@ -533,45 +534,53 @@ jobs:
           rm -rf ./AnyKernel3/.git
           cd AnyKernel3
           cp ../common/out/arch/arm64/boot/Image ./Image
-          if [[ ! -f ./Image ]]; then
-            echo "未找到内核镜像文件，构建可能出错"
-            exit 1
-          fi
+          if [[ ! -f ./Image ]]; then exit 1; fi
           
-          K_NAME="none"
+          K_NAME_F="none"
           case ${{ github.event.inputs.ksu_type }} in
-            sukisu) K_NAME="SukiSU" ;;
-            resukisu) K_NAME="ReSukiSU" ;;
-            ksunext) K_NAME="KSUNext" ;;
-            mksu) K_NAME="MKSU" ;;
-            ksu) K_NAME="KSU" ;;
+            sukisu) K_NAME_F="SukiSU" ;;
+            resukisu) K_NAME_F="ReSukiSU" ;;
+            ksunext) K_NAME_F="KSUNext" ;;
+            mksu) K_NAME_F="MKSU" ;;
+            ksu) K_NAME_F="KSU" ;;
           esac
           
           if [[ "${{ github.event.inputs.lz4kd_enable }}" == "true" ]]; then wget https://raw.githubusercontent.com/cctv18/oppo_oplus_realme_sm8750/refs/heads/main/zram.zip; fi
           if [[ ${{ github.event.inputs.kpm_enable }} == 'kpn' ]]; then wget https://github.com/cctv18/KPatch-Next/releases/latest/download/kpn.zip; fi
           
-          S_NAME="${{ github.event.inputs.kernel_suffix }}"
-          [[ -z "$S_NAME" ]] && S_NAME="${{ env.KERNEL_NAME }}"
+          S_FINAL="${{ github.event.inputs.kernel_suffix }}"
+          [[ -z "$S_FINAL" ]] && S_FINAL="${{ env.KERNEL_NAME }}"
           
-          zip -r ../AnyKernel3_${K_NAME}_${{ env.KSUVER }}_${{ env.KERNEL_VERSION }}_A15_${S_NAME}.zip ./*
+          zip -r ../AnyKernel3_${K_NAME_F}_${{ env.KSUVER }}_${{ env.KERNEL_VERSION }}_A15_${S_FINAL}.zip ./*
+
+      - name: 上传 Ccache 调试日志
+        if: always() && inputs.ccache_debug
+        uses: actions/upload-artifact@v4
+        with:
+          name: ccache-debug-log
+          path: ${{ github.workspace }}/kernel_workspace/ccache.log
 
       - name: 上传 ZIP 工件
         uses: actions/upload-artifact@v4
         with:
           name: Kernel_ZIP_Artifacts
-          path: kernel_workspace/*.zip
+          path: ${{ github.workspace }}/kernel_workspace/AnyKernel*.zip
 
   release:
     needs: build
     runs-on: ubuntu-latest
     permissions:
       contents: write
+      packages: write
+      actions: read
+      
     steps:
       - name: 下载 ZIP 工件
         uses: actions/download-artifact@v4
         with:
           name: Kernel_ZIP_Artifacts
           path: ./release_zips
+
       - name: 设置环境变量
         run: |
           if [[ -n "${{ github.event.inputs.kernel_suffix }}" ]]; then
@@ -601,6 +610,7 @@ jobs:
             KSU_TYPENAME="无内置KSU"
           fi
           echo "KSU_TYPENAME=$KSU_TYPENAME" >> $GITHUB_ENV
+          
       - name: 发布 Release
         uses: softprops/action-gh-release@v2
         with:
